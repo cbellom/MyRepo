@@ -1,9 +1,15 @@
 package com.android.mdw.demo;
 
+import java.util.Arrays;
 import java.util.List;
 
 import com.android.mdw.control.KalmanFilter;
 import com.android.mdw.model.Data;
+import com.androidplot.xy.LineAndPointFormatter;
+import com.androidplot.xy.PointLabelFormatter;
+import com.androidplot.xy.SimpleXYSeries;
+import com.androidplot.xy.XYPlot;
+import com.androidplot.xy.XYSeries;
 
 import android.app.Activity;
 import android.content.pm.ActivityInfo;
@@ -13,6 +19,7 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.WindowManager;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -28,12 +35,39 @@ public class Main extends Activity implements SensorEventListener {
     private Data data = new Data();
     private KalmanFilter kf = new KalmanFilter();
     
+    private XYPlot plot;
     
+ // Create a couple arrays of y-values to plot:
+    Number[] seriesXNumbers;
+    Number[] seriesYNumbers;
+    Number[] seriesZNumbers;
+    int size;
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.main);        
+        super.onCreate(savedInstanceState); 
         this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        
+     // fun little snippet that prevents users from taking screenshots
+        // on ICS+ devices :-)
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_SECURE,
+                                 WindowManager.LayoutParams.FLAG_SECURE);
+
+        setContentView(R.layout.main);
+
+        // initialize our XYPlot reference:
+        plot = (XYPlot) findViewById(R.id.mySimpleXYPlot);
+
+        size = 5;
+        seriesXNumbers = new Number[size];
+        seriesYNumbers = new Number[size];
+        seriesZNumbers = new Number[size];
+        
+        for (int i=0;i<size;i++){
+        	seriesXNumbers[i]=3;
+        	seriesYNumbers[i]=3;
+        	seriesZNumbers[i]=3;
+        }
+        drawPoint(seriesXNumbers,seriesYNumbers);
     }
     
     @Override
@@ -153,9 +187,52 @@ public class Main extends Activity implements SensorEventListener {
         	((TextView) findViewById(R.id.txtGirX)).setText("Giroscopio filtro X: " + filtro[0]);
             ((TextView) findViewById(R.id.txtGirY)).setText("Giroscopio filtro Y: " + filtro[1]);
             ((TextView) findViewById(R.id.txtGirZ)).setText("Giroscopio filtro Z: " + filtro[2]);
+
+//            for (int i=0;i<size-1;i++){
+//            	seriesXNumbers[i]=seriesXNumbers[i+1];
+//            	seriesYNumbers[i]=seriesYNumbers[i+1];
+//            	seriesZNumbers[i]=seriesZNumbers[i+1];
+//            }
+            seriesXNumbers[size-1]=curX;
+            seriesYNumbers[size-1]=curY;
+            seriesZNumbers[size-1]=curZ;
+            //drawPoint(seriesXNumbers,seriesYNumbers); 
         	
         }
-		
 	}    
+	
+	public void drawPoint(Number[] series1Numbers,Number[] series2Numbers ){
+
+
+        // Turn the above arrays into XYSeries':
+        XYSeries series1 = new SimpleXYSeries(
+                Arrays.asList(series1Numbers),          // SimpleXYSeries takes a List so turn our array into a List
+                SimpleXYSeries.ArrayFormat.Y_VALS_ONLY, // Y_VALS_ONLY means use the element index as the x value
+                "Series1");                             // Set the display title of the series
+
+        // same as above
+        XYSeries series2 = new SimpleXYSeries(Arrays.asList(series2Numbers), SimpleXYSeries.ArrayFormat.Y_VALS_ONLY, "Series2");
+
+        // Create a formatter to use for drawing a series using LineAndPointRenderer
+        // and configure it from xml:
+        LineAndPointFormatter series1Format = new LineAndPointFormatter();
+        series1Format.setPointLabelFormatter(new PointLabelFormatter());
+        series1Format.configure(getApplicationContext(),
+                R.xml.line_point_formatter_with_plf1);
+
+        // add a new series' to the xyplot:
+        plot.addSeries(series1, series1Format);
+
+        // same as above:
+        LineAndPointFormatter series2Format = new LineAndPointFormatter();
+        series2Format.setPointLabelFormatter(new PointLabelFormatter());
+        series2Format.configure(getApplicationContext(),
+                R.xml.line_point_formatter_with_plf2);
+        plot.addSeries(series2, series2Format);
+
+        // reduce the number of range labels
+        plot.setTicksPerRangeLabel(3);
+        plot.getGraphWidget().setDomainLabelOrientation(-45);
+	}
     
 }
